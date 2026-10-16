@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div style="padding: 20px;">
+    <h1>👀 Solicitudes de Visita</h1>
+    {% if solicitudes %}
+    <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+        <tr style="background:#417690; color:white;">
+            <th style="padding:10px;">Visitante ID</th>
+            <th style="padding:10px;">Propiedad ID</th>
+            <th style="padding:10px;">Fecha Solicitada</th>
+            <th style="padding:10px;">Estado</th>
+            <th style="padding:10px;">Mensaje</th>
+        </tr>
+        {% for sol in solicitudes %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ sol.visitante_id }}</td>
+            <td style="padding:10px;">{{ sol.propiedad_id }}</td>
+            <td style="padding:10px;">{{ sol.fecha_solicitada }}</td>
+            <td style="padding:10px;">
+                <span style="padding:4px 8px; border-radius:4px; background:{% if sol.estado == 'APROBADA' %}#28a745{% elif sol.estado == 'RECHAZADA' %}#dc3545{% else %}#ffc107{% endif %}; color:white;">
+                    {{ sol.estado }}
+                </span>
+            </td>
+            <td style="padding:10px;">{{ sol.mensaje|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p style="margin-top:20px; color:#666;">No hay solicitudes de visita pendientes.</p>
+    {% endif %}
+</div>
+{% endblock %}

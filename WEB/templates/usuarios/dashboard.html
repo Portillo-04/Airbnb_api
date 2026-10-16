@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <!-- Iconos de FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --bg-color: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        
+        body { 
+            background: var(--bg-color); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* Header con degradado */
+        .app-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 40px 20px 100px;
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
+            position: relative;
+            box-shadow: 0 10px 30px -10px rgba(79, 70, 229, 0.4);
+        }
+
+        .header-top { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px; 
+        }
+
+        .welcome-text { font-size: 14px; opacity: 0.9; font-weight: 500; letter-spacing: 0.5px; }
+        
+        .user-email { 
+            font-size: 28px; 
+            font-weight: 800; 
+            margin-bottom: 15px; 
+            letter-spacing: -0.5px;
+        }
+        
+        .role-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .logout-btn { 
+            color: white; 
+            font-size: 20px; 
+            text-decoration: none; 
+            opacity: 0.8; 
+            transition: all 0.2s;
+            padding: 8px;
+            border-radius: 50%;
+        }
+        .logout-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); transform: scale(1.1); }
+
+        /* Contenedor Principal CENTRADO */
+        .main-container {
+            width: 100%;
+            max-width: 1100px;
+            margin: -60px auto 0;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+            flex-grow: 1;
+        }
+
+        /* Grid PERFECTAMENTE ORDENADO */
+        .dashboard-grid {
+            display: grid;
+            justify-content: center; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .dash-card {
+            background: white;
+            border-radius: 24px;
+            padding: 35px 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .dash-card:hover { 
+            transform: translateY(-10px); 
+            box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.1); 
+            border-color: rgba(79, 70, 229, 0.1);
+        }
+
+        .icon-circle {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; color: white;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #1e293b; }
+        .card-subtitle { font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.4; }
+
+        /* Colores vibrantes */
+        .bg-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .bg-green { background: linear-gradient(135deg, #10b981, #059669); }
+        .bg-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .bg-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .bg-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        
+        /* Color especial para Admin (Dorado/Oscuro) */
+        .bg-dark { background: linear-gradient(135deg, #1e293b, #0f172a); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #10b981; color: white;
+            padding: 14px 28px; border-radius: 50px;
+            font-weight: 600; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            z-index: 100; display: flex; align-items: center; gap: 10px;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+            .dash-card { min-height: 160px; padding: 20px 15px; }
+            .icon-circle { width: 55px; height: 55px; font-size: 22px; margin-bottom: 15px; }
+            .card-title { font-size: 16px; }
+            .user-email { font-size: 24px; }
+            .app-header { padding-bottom: 80px; }
+        }
+        
+        @media (max-width: 480px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Estilo App -->
+    <div class="app-header">
+        <div class="header-top">
+            <span class="welcome-text">Bienvenido,</span>
+            <a href="{% url 'usuarios:logout' %}" class="logout-btn" title="Cerrar Sesión">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </a>
+        </div>
+        
+        <!-- MUESTRA SOLO EL NOMBRE (admin) -->
+        <div class="user-email">{{ user.username }}</div>
+        
+        <!-- LÓGICA DINÁMICA DEL PANEL -->
+        <div class="role-badge">
+            <i class="fa-solid fa-table-cells-large"></i> 
+            Panel de 
+            {% if user.rol == 'administrador' or user.rol == 'admin' %}
+                Administrador
+            {% elif user.rol == 'propietario' %}
+                Propietario
+            {% elif user.rol == 'inquilino' %}
+                Inquilino
+            {% else %}
+                Visitante
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Grid de Opciones Centrado -->
+    <div class="main-container">
+        <div class="dashboard-grid">
+            
+            <!-- TARJETA EXCLUSIVA PARA ADMINISTRADOR -->
+            {% if user.rol == 'administrador' or user.rol == 'admin' %}
+            <a href="/admin/crear-usuario/" class="dash-card">
+                <div class="icon-circle bg-dark"><i class="fa-solid fa-user-shield"></i></div>
+                <div class="card-title">Crear Usuario</div>
+                <div class="card-subtitle">Gestionar los 4 roles</div>
+            </a>
+            {% endif %}
+
+            <a href="/admin/propiedades/propiedad/" class="dash-card">
+                <div class="icon-circle bg-blue"><i class="fa-solid fa-house-chimney"></i></div>
+                <div class="card-title">Mis Propiedades</div>
+                <div class="card-subtitle">Gestiona tus inmuebles</div>
+            </a>
+
+            <a href="/admin/contratos/" class="dash-card">
+                <div class="icon-circle bg-green"><i class="fa-solid fa-file-signature"></i></div>
+                <div class="card-title">Contratos</div>
+                <div class="card-subtitle">Contratos activos</div>
+            </a>
+
+            <a href="/admin/pagos/" class="dash-card">
+                <div class="icon-circle bg-orange"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="card-title">Pagos</div>
+                <div class="card-subtitle">Historial de pagos</div>
+            </a>
+
+            <a href="/admin/mantenimiento/" class="dash-card">
+                <div class="icon-circle bg-red"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div class="card-title">Mantenimiento</div>
+                <div class="card-subtitle">Solicitudes técnicas</div>
+            </a>
+
+            <a href="{% url 'usuarios:solicitudes-alquiler' %}" class="dash-card">
+                <div class="icon-circle bg-purple"><i class="fa-solid fa-handshake-simple"></i></div>
+                <div class="card-title">Solicitudes Alquiler</div>
+                <div class="card-subtitle">Gestionar solicitudes</div>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- Toast de Bienvenida -->
+    <div class="toast">
+        <i class="fa-solid fa-check-circle"></i> ¡Bienvenido!
+    </div>
+
+    <script>
+        setTimeout(() => {
+            const toast = document.querySelector('.toast');
+            if(toast) {
+                toast.style.transition = 'opacity 0.5s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

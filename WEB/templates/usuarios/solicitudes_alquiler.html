@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div style="padding: 20px;">
+    <h1>🏠 Solicitudes de Alquiler</h1>
+    {% if solicitudes %}
+    <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+        <tr style="background:#417690; color:white;">
+            <th style="padding:10px;">Inquilino</th>
+            <th style="padding:10px;">Propiedad ID</th>
+            <th style="padding:10px;">Fechas</th>
+            <th style="padding:10px;">Estado</th>
+            <th style="padding:10px;">Respuesta</th>
+        </tr>
+        {% for sol in solicitudes %}
+        <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ sol.inquilino_nombre }}</td>
+            <td style="padding:10px;">{{ sol.propiedad_id }}</td>
+            <td style="padding:10px;">{{ sol.fecha_inicio }} / {{ sol.fecha_fin }}</td>
+            <td style="padding:10px;">
+                <span style="padding:4px 8px; border-radius:4px; background:{% if sol.estado == 'APROBADA' %}#28a745{% elif sol.estado == 'RECHAZADA' %}#dc3545{% else %}#ffc107{% endif %}; color:white;">
+                    {{ sol.estado }}
+                </span>
+            </td>
+            <td style="padding:10px;">{{ sol.respuesta_propietario|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p style="margin-top:20px; color:#666;">No hay solicitudes de alquiler pendientes.</p>
+    {% endif %}
+</div>
+{% endblock %}
