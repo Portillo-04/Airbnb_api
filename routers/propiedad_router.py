@@ -82,9 +82,9 @@ def obtener_disponibles(session: SessionDependencia):
 )
 async def crear_propiedad(
     datos_json: str = Form(..., alias="datos"),
-    session: SessionDependencia,
-    token: dict = Depends(RequireAutenticado),
-    file: Optional[UploadFile] = File(None)
+    file: UploadFile | None = File(None),
+    session: SessionDependencia = Depends(),
+    token: dict = Depends(RequireAutenticado)
 ):
     rol = token.get("rol")
     if rol == "inquilino":
@@ -128,9 +128,9 @@ async def crear_propiedad(
 async def actualizar_propiedad(
     propiedad_id: int,
     datos_json: str = Form(..., alias="datos"),
-    session: SessionDependencia,
-    token: dict = Depends(RequireAutenticado),
-    file: Optional[UploadFile] = File(None)
+    file: UploadFile | None = File(None),
+    session: SessionDependencia = Depends(),
+    token: dict = Depends(RequireAutenticado)
 ):
     propiedad = session.get(Propiedad, propiedad_id)
     if not propiedad:
@@ -173,7 +173,7 @@ async def actualizar_propiedad(
     summary="Obtener Mis Propiedades"
 )
 def obtener_mis_propiedades(
-    session: SessionDependencia,
+    session: SessionDependencia = Depends(),
     token: dict = Depends(RequireAutenticado)
 ):
     rol = token.get("rol")
@@ -195,7 +195,7 @@ def obtener_mis_propiedades(
     summary="Propiedades que tengo alquiladas"
 )
 def obtener_propiedades_alquiladas(
-    session: SessionDependencia,
+    session: SessionDependencia = Depends(),
     token: dict = Depends(RequireAutenticado)
 ):
     mi_id = token.get("id")
@@ -226,7 +226,7 @@ def obtener_propiedades_alquiladas(
 )
 def obtener_propiedad(
     propiedad_id: int,
-    session: SessionDependencia,
+    session: SessionDependencia = Depends(),
     token: dict = Depends(RequireAutenticado)
 ):
     propiedad = session.get(Propiedad, propiedad_id)
@@ -261,7 +261,7 @@ def obtener_propiedad(
 )
 def eliminar_propiedad(
     propiedad_id: int,
-    session: SessionDependencia,
+    session: SessionDependencia = Depends(),
     token: dict = Depends(RequireAutenticado)
 ):
     propiedad = session.get(Propiedad, propiedad_id)
