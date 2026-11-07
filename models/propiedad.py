@@ -19,7 +19,8 @@ class PropiedadBase(SQLModel):
     descripcion: str = Field(nullable=False, max_length=1000)
     precio_mensual: float = Field(nullable=False)
     estado: EstadoPropiedad = Field(default=EstadoPropiedad.DISPONIBLE)
-    fotos_url: Optional[str] = Field(default=None, max_length=500)
+
+    imagen_url: Optional[str] = Field(default=None, max_length=500)
 
     propietario_id: int = Field(foreign_key="usuarios.id", nullable=False)
 
@@ -56,7 +57,8 @@ class PropiedadUpdate(SQLModel):
     descripcion: Optional[str] = Field(default=None, max_length=1000)
     precio_mensual: Optional[float] = None
     estado: Optional[EstadoPropiedad] = None
-    fotos_url: Optional[str] = Field(default=None, max_length=500)
+
+    imagen_url: Optional[str] = Field(default=None, max_length=500)
     propietario_id: Optional[int] = None
 
 
