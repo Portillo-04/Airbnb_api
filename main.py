@@ -9,7 +9,7 @@ import os
 from config.settings import get_settings
 from config.db import crear_db_y_tablas
 
-# Importar modelos para asegurar que SQLModel los registre
+
 from models import usuario, propiedad, contrato, pago, mantenimiento, solicitud_alquiler, solicitud_visita
 
 from routers import (
@@ -41,7 +41,7 @@ app = FastAPI(
     version="0.4.0",
     lifespan=lifespan,
     openapi_tags=[],
-    docs_url=None,  # Deshabilitamos docs por defecto para usar la personalizada
+    docs_url=None,
     redoc_url=None
 )
 

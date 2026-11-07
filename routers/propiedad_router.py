@@ -1,7 +1,7 @@
 import os
 import uuid
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
@@ -22,8 +22,8 @@ UPLOAD_DIR = Path("uploads/propiedades")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def generate_filename(file: UploadFile) -> str:
-    ext = file.filename.split(".")[-1].lower() if file.filename else "jpg"
+def generate_filename(original_name: str) -> str:
+    ext = original_name.split(".")[-1].lower() if original_name else "jpg"
     allowed_ext = ["jpg", "jpeg", "png", "webp"]
     if ext not in allowed_ext:
         raise HTTPException(
@@ -31,10 +31,41 @@ def generate_filename(file: UploadFile) -> str:
     return f"{uuid.uuid4().hex}.{ext}"
 
 
+async def save_image(file: UploadFile) -> str:
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400, detail="Tipo de archivo no permitido. Solo JPEG, PNG o WebP")
+
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=400, detail="La imagen no puede superar los 5MB")
+
+    filename = generate_filename(file.filename or "image.jpg")
+    filepath = UPLOAD_DIR / filename
+
+    with open(filepath, "wb") as buffer:
+        buffer.write(content)
+
+    return f"/uploads/propiedades/{filename}"
+
+
+def delete_old_image(image_url: Optional[str]):
+    if image_url and "/uploads/propiedades/" in image_url:
+        try:
+            filename = image_url.split("/")[-1]
+            filepath = UPLOAD_DIR / filename
+            if filepath.exists():
+                filepath.unlink()
+        except Exception:
+            pass
+
+
 @router.get(
     "/disponibles",
     response_model=List[PropiedadResponse],
-    summary="Ver propiedades disponibles para alquilar"
+    summary="Ver propiedades disponibles"
 )
 def obtener_disponibles(session: SessionDependencia):
     statement = select(Propiedad).where(
@@ -46,12 +77,13 @@ def obtener_disponibles(session: SessionDependencia):
     "/",
     response_model=PropiedadResponse,
     status_code=201,
-    summary="Crear Propiedad (Solo Propietario/Admin)"
+    summary="Crear Propiedad"
 )
-def crear_propiedad(
+async def crear_propiedad(
     datos: PropiedadCreate,
     session: SessionDependencia,
-    token: dict = Depends(RequireAutenticado)
+    token: dict = Depends(RequireAutenticado),
+    file: Optional[UploadFile] = File(None)
 ):
     rol = token.get("rol")
 
@@ -59,13 +91,21 @@ def crear_propiedad(
         raise HTTPException(
             status_code=403, detail="Los inquilinos no pueden registrar propiedades")
 
+    imagen_url = None
+    if file:
+        imagen_url = await save_image(file)
+
     if rol == "propietario":
         nueva = Propiedad(
-            **datos.model_dump(exclude={'propietario_id'}),
-            propietario_id=token["id"]
+            **datos.model_dump(exclude={'propietario_id', 'imagen_url'}),
+            propietario_id=token["id"],
+            imagen_url=imagen_url
         )
     else:
-        nueva = Propiedad(**datos.model_dump())
+        nueva = Propiedad(
+            **datos.model_dump(exclude={'imagen_url'}),
+            imagen_url=imagen_url
+        )
 
     session.add(nueva)
     session.commit()
@@ -73,49 +113,56 @@ def crear_propiedad(
     return PropiedadResponse.model_validate(nueva)
 
 
-@router.post(
-    "/upload-imagen",
-    summary="Subir Imagen de Propiedad"
+@router.put(
+    "/{propiedad_id}",
+    response_model=PropiedadResponse,
+    summary="Actualizar Propiedad e Imagen"
 )
-async def subir_imagen(
-    file: UploadFile = File(...),
-    token: dict = Depends(RequireAutenticado)
+async def actualizar_propiedad(
+    propiedad_id: int,
+    datos: PropiedadUpdate,
+    session: SessionDependencia,
+    token: dict = Depends(RequireAutenticado),
+    file: Optional[UploadFile] = File(None)
 ):
+    propiedad = session.get(Propiedad, propiedad_id)
+    if not propiedad:
+        raise HTTPException(status_code=404, detail="Propiedad no encontrada")
+
     rol = token.get("rol")
-    if rol == "inquilino":
+    mi_id = token.get("id")
+
+    if rol == "propietario" and propiedad.propietario_id != mi_id:
         raise HTTPException(
-            status_code=403, detail="Los inquilinos no pueden subir imágenes")
-
-    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
-    if file.content_type not in allowed_types:
+            status_code=403, detail="No eres el dueño de esta propiedad")
+    elif rol == "inquilino":
         raise HTTPException(
-            status_code=400, detail="Tipo de archivo no permitido. Solo JPEG, PNG o WebP")
+            status_code=403, detail="Los inquilinos no pueden modificar propiedades")
 
-    content = await file.read()
-    if len(content) > 5 * 1024 * 1024:
-        raise HTTPException(
-            status_code=400, detail="La imagen no puede superar los 5MB")
+    if file:
+        delete_old_image(propiedad.imagen_url)
+        propiedad.imagen_url = await save_image(file)
 
-    filename = generate_filename(file)
-    filepath = UPLOAD_DIR / filename
+    update_data = datos.model_dump(exclude_unset=True, exclude={'imagen_url'})
+    for key, value in update_data.items():
+        setattr(propiedad, key, value)
 
-    with open(filepath, "wb") as buffer:
-        buffer.write(content)
-
-    return {"imagen_url": f"/uploads/propiedades/{filename}"}
+    propiedad.updated_at = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(propiedad)
+    return PropiedadResponse.model_validate(propiedad)
 
 
 @router.get(
     "/mis-propiedades",
     response_model=List[PropiedadResponse],
-    summary="Obtener Mis Propiedades (Solo Propietario/Admin)"
+    summary="Obtener Mis Propiedades"
 )
 def obtener_mis_propiedades(
     session: SessionDependencia,
     token: dict = Depends(RequireAutenticado)
 ):
     rol = token.get("rol")
-
     if rol == "inquilino":
         raise HTTPException(
             status_code=403, detail="Usa /disponibles para ver propiedades")
@@ -125,14 +172,13 @@ def obtener_mis_propiedades(
             Propiedad.propietario_id == token["id"])
     else:
         statement = select(Propiedad)
-
     return session.exec(statement).all()
 
 
 @router.get(
     "/mis-propiedades-alquiladas",
     response_model=List[PropiedadResponse],
-    summary="Propiedades que tengo alquiladas (Inquilino)"
+    summary="Propiedades que tengo alquiladas"
 )
 def obtener_propiedades_alquiladas(
     session: SessionDependencia,
@@ -187,46 +233,10 @@ def obtener_propiedad(
         if not contrato_activo:
             raise HTTPException(
                 status_code=403, detail="No tienes permiso para ver esta propiedad")
-
     elif rol == "propietario" and propiedad.propietario_id != mi_id:
         raise HTTPException(
             status_code=403, detail="No eres el dueño de esta propiedad")
 
-    return PropiedadResponse.model_validate(propiedad)
-
-
-@router.put(
-    "/{propiedad_id}",
-    response_model=PropiedadResponse,
-    summary="Actualizar Propiedad Completa"
-)
-def actualizar_propiedad(
-    propiedad_id: int,
-    datos: PropiedadUpdate,
-    session: SessionDependencia,
-    token: dict = Depends(RequireAutenticado)
-):
-    propiedad = session.get(Propiedad, propiedad_id)
-    if not propiedad:
-        raise HTTPException(status_code=404, detail="Propiedad no encontrada")
-
-    rol = token.get("rol")
-    mi_id = token.get("id")
-
-    if rol == "propietario" and propiedad.propietario_id != mi_id:
-        raise HTTPException(
-            status_code=403, detail="No eres el dueño de esta propiedad")
-    elif rol == "inquilino":
-        raise HTTPException(
-            status_code=403, detail="Los inquilinos no pueden modificar propiedades")
-
-    update_data = datos.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(propiedad, key, value)
-
-    propiedad.updated_at = datetime.now(timezone.utc)
-    session.commit()
-    session.refresh(propiedad)
     return PropiedadResponse.model_validate(propiedad)
 
 
@@ -264,17 +274,10 @@ def eliminar_propiedad(
     if contratos_activos:
         raise HTTPException(
             status_code=400,
-            detail="No se puede eliminar: tiene contratos activos. Finalízalos primero."
+            detail="No se puede eliminar: tiene contratos activos."
         )
 
-    if hasattr(propiedad, 'imagen_url') and propiedad.imagen_url:
-        try:
-            filename = propiedad.imagen_url.split("/")[-1]
-            filepath = UPLOAD_DIR / filename
-            if filepath.exists():
-                filepath.unlink()
-        except Exception:
-            pass
+    delete_old_image(propiedad.imagen_url)
 
     session.delete(propiedad)
     session.commit()
