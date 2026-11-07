@@ -81,10 +81,10 @@ def obtener_disponibles(session: SessionDependencia):
     summary="Crear Propiedad con Imagen"
 )
 async def crear_propiedad(
-    datos_json: str = Form(..., alias="datos"),
-    file: UploadFile | None = File(None),
     session: SessionDependencia,
-    token: dict = Depends(RequireAutenticado)
+    token: dict = Depends(RequireAutenticado),
+    datos_json: str = Form(..., alias="datos"),
+    file: UploadFile | None = File(None)
 ):
     rol = token.get("rol")
     if rol == "inquilino":
@@ -127,10 +127,10 @@ async def crear_propiedad(
 )
 async def actualizar_propiedad(
     propiedad_id: int,
-    datos_json: str = Form(..., alias="datos"),
-    file: UploadFile | None = File(None),
     session: SessionDependencia,
-    token: dict = Depends(RequireAutenticado)
+    token: dict = Depends(RequireAutenticado),
+    datos_json: str = Form(..., alias="datos"),
+    file: UploadFile | None = File(None)
 ):
     propiedad = session.get(Propiedad, propiedad_id)
     if not propiedad:
