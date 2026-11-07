@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from starlette.responses import Response
 from contextlib import asynccontextmanager
 import os
@@ -8,6 +9,7 @@ import os
 from config.settings import get_settings
 from config.db import crear_db_y_tablas
 
+# Importar modelos para asegurar que SQLModel los registre
 from models import usuario, propiedad, contrato, pago, mantenimiento, solicitud_alquiler, solicitud_visita
 
 from routers import (
@@ -38,8 +40,55 @@ app = FastAPI(
     title="API Alquileres AIRBNB",
     version="0.4.0",
     lifespan=lifespan,
-    openapi_tags=[]
+    openapi_tags=[],
+    docs_url=None,  # Deshabilitamos docs por defecto para usar la personalizada
+    redoc_url=None
 )
+
+
+@app.get("/docs", response_class=HTMLResponse, include_in_schema=False)
+async def custom_docs():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>API Alquileres AIRBNB - Documentación</title>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+        <style>
+            .topbar { display: none; }
+            .logo-header { 
+                padding: 30px 20px; 
+                text-align: center; 
+                background: #fff;
+                /* border-bottom: 1px solid #e0e0e0;  <-- ¡BORRÁ ESTA LÍNEA! */
+            }
+            .logo-header img { 
+                max-height: 100px; 
+                width: auto;       
+                display: block; 
+                margin: 0 auto;    
+            }
+        </style>
+    </head>
+    <body>
+        <div class="logo-header">
+            <img src="/assets/logo.png" alt="Logo API Alquileres AIRBNB">
+        </div>
+        <div id="swagger-ui"></div>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+        <script>
+            window.onload = function() {
+                window.ui = SwaggerUIBundle({
+                    url: "/openapi.json",
+                    dom_id: '#swagger-ui',
+                    presets: [SwaggerUIBundle.presets.apis],
+                    layout: "BaseLayout"
+                });
+            };
+        </script>
+    </body>
+    </html>
+    """
 
 
 @app.middleware("http")
@@ -74,6 +123,10 @@ UPLOAD_DIR = "uploads"
 os.makedirs(os.path.join(UPLOAD_DIR, "propiedades"), exist_ok=True)
 os.makedirs(os.path.join(UPLOAD_DIR, "contratos"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+ASSETS_DIR = "assets"
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 app.include_router(usuario_router.router, tags=["usuarios"])
 app.include_router(propiedad_router.router, tags=["propiedades"])
