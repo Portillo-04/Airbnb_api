@@ -1,9 +1,11 @@
 import os
 import uuid
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query
+from typing import List
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
+from config.permissions import RequireAutenticado
 from models.propiedad import (
     Propiedad,
     PropiedadCreate,
@@ -12,7 +14,6 @@ from models.propiedad import (
     EstadoPropiedad
 )
 from models.contrato import Contrato, EstadoContrato
-from typing import List, Optional
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/propiedades", tags=["propiedades"])
@@ -22,9 +23,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def generate_filename(file: UploadFile) -> str:
-    """Genera nombre único seguro (evita path traversal)"""
     ext = file.filename.split(".")[-1].lower() if file.filename else "jpg"
-
     allowed_ext = ["jpg", "jpeg", "png", "webp"]
     if ext not in allowed_ext:
         raise HTTPException(
@@ -38,7 +37,6 @@ def generate_filename(file: UploadFile) -> str:
     summary="Ver propiedades disponibles para alquilar"
 )
 def obtener_disponibles(session: SessionDependencia):
-    """Público: cualquiera puede ver qué hay disponible"""
     statement = select(Propiedad).where(
         Propiedad.estado == EstadoPropiedad.DISPONIBLE)
     return session.exec(statement).all()
@@ -83,7 +81,6 @@ async def subir_imagen(
     file: UploadFile = File(...),
     token: dict = Depends(RequireAutenticado)
 ):
-    """Solo propietarios y admins pueden subir imágenes"""
     rol = token.get("rol")
     if rol == "inquilino":
         raise HTTPException(
@@ -111,13 +108,12 @@ async def subir_imagen(
 @router.get(
     "/mis-propiedades",
     response_model=List[PropiedadResponse],
-    summary="Obtener Mis Propiedades (Solo Propietario)"
+    summary="Obtener Mis Propiedades (Solo Propietario/Admin)"
 )
 def obtener_mis_propiedades(
     session: SessionDependencia,
     token: dict = Depends(RequireAutenticado)
 ):
-    """Propietario ve SOLO sus propiedades. Admin ve todas."""
     rol = token.get("rol")
 
     if rol == "inquilino":
@@ -142,8 +138,6 @@ def obtener_propiedades_alquiladas(
     session: SessionDependencia,
     token: dict = Depends(RequireAutenticado)
 ):
-
-    rol = token.get("rol")
     mi_id = token.get("id")
 
     contratos = session.exec(
