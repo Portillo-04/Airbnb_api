@@ -54,9 +54,12 @@ async def add_security_headers(request: Request, call_next):
 
 
 ALLOWED_ORIGINS = [
+    "http://68.211.113.156:3000",
+    "http://68.211.113.156:5173",
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://tu-frontend-produccion.com"
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173"
 ]
 
 app.add_middleware(
