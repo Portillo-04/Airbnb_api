@@ -1,0 +1,26 @@
+# Framework Principal
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0
+
+# ORM y Base de Datos
+sqlmodel>=0.0.14
+pymysql>=1.1.0
+cryptography>=41.0.0
+
+# Validación y Serialización
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+email-validator>=2.1.0
+
+# Autenticación JWT
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# Variables de Entorno
+python-decouple>=3.8
+
+# Formularios y Archivos
+python-multipart>=0.0.6
+
+# CORS
+fastapi-cors>=0.0.6
