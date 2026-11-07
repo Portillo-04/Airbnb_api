@@ -1,8 +1,9 @@
 import os
 import uuid
+import json
 from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
 from config.permissions import RequireAutenticado
@@ -77,19 +78,25 @@ def obtener_disponibles(session: SessionDependencia):
     "/",
     response_model=PropiedadResponse,
     status_code=201,
-    summary="Crear Propiedad"
+    summary="Crear Propiedad con Imagen"
 )
 async def crear_propiedad(
-    datos: PropiedadCreate,
+    datos_json: str = Form(..., alias="datos"),
     session: SessionDependencia,
     token: dict = Depends(RequireAutenticado),
     file: Optional[UploadFile] = File(None)
 ):
     rol = token.get("rol")
-
     if rol == "inquilino":
         raise HTTPException(
             status_code=403, detail="Los inquilinos no pueden registrar propiedades")
+
+    try:
+        datos_dict = json.loads(datos_json)
+        datos = PropiedadCreate(**datos_dict)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Datos inválidos: {str(e)}")
 
     imagen_url = None
     if file:
@@ -120,7 +127,7 @@ async def crear_propiedad(
 )
 async def actualizar_propiedad(
     propiedad_id: int,
-    datos: PropiedadUpdate,
+    datos_json: str = Form(..., alias="datos"),
     session: SessionDependencia,
     token: dict = Depends(RequireAutenticado),
     file: Optional[UploadFile] = File(None)
@@ -138,6 +145,13 @@ async def actualizar_propiedad(
     elif rol == "inquilino":
         raise HTTPException(
             status_code=403, detail="Los inquilinos no pueden modificar propiedades")
+
+    try:
+        datos_dict = json.loads(datos_json)
+        datos = PropiedadUpdate(**datos_dict)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Datos inválidos: {str(e)}")
 
     if file:
         delete_old_image(propiedad.imagen_url)
