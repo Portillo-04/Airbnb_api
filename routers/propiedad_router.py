@@ -78,7 +78,7 @@ def obtener_disponibles(session: SessionDependencia):
     "/",
     response_model=PropiedadResponse,
     status_code=201,
-    summary="Crear Propiedad con Imagen"
+    summary="Crear Propiedad"
 )
 async def crear_propiedad(
     session: SessionDependencia,
@@ -123,7 +123,7 @@ async def crear_propiedad(
 @router.put(
     "/{propiedad_id}",
     response_model=PropiedadResponse,
-    summary="Actualizar Propiedad e Imagen"
+    summary="Actualizar Propiedad"
 )
 async def actualizar_propiedad(
     propiedad_id: int,
