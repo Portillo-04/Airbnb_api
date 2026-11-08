@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional
 from enum import Enum
 import sqlalchemy as sa
-from pydantic import field_serializer
 
 
 class EstadoPropiedad(str, Enum):
@@ -68,10 +67,6 @@ class PropiedadResponse(PropiedadBase):
     id: int
     created_at: datetime
     updated_at: datetime
-
-    @field_serializer("precio_mensual")
-    def serialize_precio(self, value: float) -> str:
-        return f"${value:.2f}"
 
     class Config:
         from_attributes = True
