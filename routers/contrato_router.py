@@ -96,18 +96,20 @@ def crear_contrato(
     return ContratoResponse.model_validate(nuevo_contrato)
 
 
-@router.get("/contratos", response_model=list[ContratoResponse])
-def listar_contratos(session: SessionDependencia, token: dict = Depends(Token_Dependencia)):
+@router.get("/", response_model=list[ContratoResponse])
+def listar_contratos(
+    session: SessionDependencia,
+    token: dict = Depends(Token_Dependencia)
+):
     rol = token.get("rol")
+
+    if rol != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Acceso denegado. Solo el administrador puede listar todos los contratos"
+        )
+
     statement = select(Contrato)
-
-    if rol == "propietario":
-        from sqlmodel import col
-        statement = statement.join(Propiedad).where(
-            Propiedad.propietario_id == token.get("id"))
-    elif rol == "inquilino":
-        statement = statement.where(Contrato.inquilino_id == token.get("id"))
-
     return session.exec(statement).all()
 
 
