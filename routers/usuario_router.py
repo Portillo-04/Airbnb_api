@@ -80,7 +80,7 @@ def register_usuario(datos: UsuarioCreate, session: SessionDependencia):
     "/usuarios/admin",
     response_model=UsuarioResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(RequireAdmin)],
+
     summary="Crear Usuario Admin"
 )
 def create_usuario_admin(datos: UsuarioCreate, session: SessionDependencia):

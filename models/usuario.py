@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+import re
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import EmailStr, ConfigDict
 from enum import Enum as PyEnum
@@ -86,14 +87,24 @@ class Usuario(UsuarioBase, table=True):
                             server_default=sa.func.now())
     )
 
-    propiedades: list["Propiedad"] = Relationship(back_populates="propietario")
-    contratos: list["Contrato"] = Relationship(back_populates="inquilino")
-    pagos: list["Pago"] = Relationship(back_populates="usuario")
-    mantenimientos: list["SolicitudMantenimiento"] = Relationship(
+    propiedades: List["Propiedad"] = Relationship(back_populates="propietario")
+
+    contratos_como_inquilino: List["Contrato"] = Relationship(
+        back_populates="inquilino",
+        sa_relationship_kwargs={"foreign_keys": "[Contrato.inquilino_id]"}
+    )
+
+    contratos_firmados: List["Contrato"] = Relationship(
+        back_populates="firmante",
+        sa_relationship_kwargs={"foreign_keys": "[Contrato.firmado_por]"}
+    )
+
+    pagos: List["Pago"] = Relationship(back_populates="usuario")
+    mantenimientos: List["SolicitudMantenimiento"] = Relationship(
         back_populates="solicitante")
-    solicitudes_visita: list["SolicitudVisita"] = Relationship(
+    solicitudes_visita: List["SolicitudVisita"] = Relationship(
         back_populates="solicitante")
-    solicitudes_alquiler: list["SolicitudAlquiler"] = Relationship(
+    solicitudes_alquiler: List["SolicitudAlquiler"] = Relationship(
         back_populates="solicitante")
 
 

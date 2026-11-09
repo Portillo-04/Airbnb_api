@@ -77,7 +77,7 @@ def obtener_disponibles(session: SessionDependencia):
 @router.get(
     "/",
     response_model=List[PropiedadResponse],
-    summary="Listar Todas las Propiedades (Solo Admin)"
+    summary="Listar Todas las Propiedades"
 )
 def listar_todas_propiedades(
     session: SessionDependencia,

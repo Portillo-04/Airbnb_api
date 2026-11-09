@@ -17,12 +17,10 @@ def solicitar_visita(
 ):
     rol = token.get("rol")
 
-    # ✅ VALIDACIÓN DE ROL (Asumiendo que visitantes son inquilinos o usuarios no propietarios)
     if rol == "propietario":
         raise HTTPException(
             status_code=403, detail="Los propietarios no solicitan visitas a sus propias propiedades")
 
-    # Validar fecha futura
     if datos.fecha_solicitada <= datetime.now():
         raise HTTPException(
             status_code=400, detail="La fecha de visita debe ser futura")
