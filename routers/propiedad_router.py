@@ -74,6 +74,27 @@ def obtener_disponibles(session: SessionDependencia):
     return session.exec(statement).all()
 
 
+@router.get(
+    "/",
+    response_model=List[PropiedadResponse],
+    summary="Listar Todas las Propiedades (Solo Admin)"
+)
+def listar_todas_propiedades(
+    session: SessionDependencia,
+    token: dict = Depends(RequireAutenticado)
+):
+    rol = token.get("rol")
+
+    if rol != "administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Acceso denegado. Solo el administrador puede listar todas las propiedades"
+        )
+
+    statement = select(Propiedad)
+    return session.exec(statement).all()
+
+
 @router.post(
     "/",
     response_model=PropiedadResponse,
