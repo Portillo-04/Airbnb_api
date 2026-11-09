@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select
@@ -18,6 +19,28 @@ def validar_email_unico(session, email: str, exclude_id: int = None):
     if session.exec(stmt).first():
         raise HTTPException(
             status_code=400, detail="El email ya está registrado")
+
+
+@router.get(
+    "/usuarios/",
+    response_model=List[UsuarioResponse],
+    dependencies=[Depends(RequireAutenticado)],
+    summary="Listar Todos los Usuarios"
+)
+def listar_usuarios(
+    session: SessionDependencia,
+    token: dict = Depends(RequireAutenticado)
+):
+    rol = token.get("rol")
+
+    if rol not in ["administrador", "propietario"]:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permisos para listar usuarios"
+        )
+
+    statement = select(Usuario)
+    return session.exec(statement).all()
 
 
 @router.post(
