@@ -9,6 +9,7 @@ class EstadoContrato(str, Enum):
     ACTIVO = "activo"
     FINALIZADO = "finalizado"
     CANCELADO = "cancelado"
+    FIRMADO = "firmado"
 
 
 class ContratoBase(SQLModel):
@@ -52,6 +53,12 @@ class Contrato(ContratoBase, table=True):
                             server_default=sa.func.now(), onupdate=sa.func.now())
     )
 
+    # Campos internos de seguridad (NUNCA expuestos en response)
+    password_firma_hash: Optional[str] = Field(default=None, max_length=64)
+    firmado_por: Optional[int] = Field(default=None, foreign_key="usuarios.id")
+    fecha_firma: Optional[datetime] = Field(default=None)
+
+    # Relaciones
     propiedad: "Propiedad" = Relationship(back_populates="contratos")
     inquilino: "Usuario" = Relationship(back_populates="contratos")
 
@@ -59,6 +66,13 @@ class Contrato(ContratoBase, table=True):
 class ContratoResponse(ContratoBase):
     id: int
     created_at: datetime
+
+    # ✅ SOLO METADATA DE FIRMA, NUNCA EL HASH
+    firmado_por: Optional[int] = None
+    fecha_firma: Optional[datetime] = None
+
+    # Campo calculado para el frontend (opcional pero útil)
+    esta_firmado: bool = False
 
     class Config:
         from_attributes = True
