@@ -45,16 +45,15 @@ class SolicitudAlquiler(SolicitudAlquilerBase, table=True):
         back_populates="solicitudes_alquiler")
 
 
-class SolicitudAlquilerCreate(SQLModel):
-    propiedad_id: int = Field(foreign_key="propiedades.id", nullable=False)
-    fecha_inicio: datetime
-    fecha_fin: datetime
+class SolicitudAlquilerCreate(SolicitudAlquilerBase):
+    pass
 
 
 class SolicitudAlquilerResponse(SolicitudAlquilerBase):
     id: int
-    inquilino_nombre: Optional[str] = None
     created_at: datetime
+
+    inquilino_nombre: Optional[str] = None
 
     class Config:
         from_attributes = True

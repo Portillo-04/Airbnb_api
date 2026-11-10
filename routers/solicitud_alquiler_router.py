@@ -5,6 +5,7 @@ from config.session_Dependencia import SessionDependencia
 from config.security_Dependencia import Token_Dependencia
 from models.solicitud_alquiler import SolicitudAlquiler, SolicitudAlquilerCreate, SolicitudAlquilerResponse, EstadoSolicitudAlquiler
 from models.propiedad import Propiedad, EstadoVivienda
+from models.usuario import Usuario
 from datetime import datetime
 
 router = APIRouter(prefix="/solicitudes-alquiler",
@@ -73,13 +74,24 @@ def listar_solicitudes_alquiler(
     if rol == "inquilino":
         statement = statement.where(SolicitudAlquiler.inquilino_id == mi_id)
     elif rol == "propietario":
-        from sqlmodel import col
         statement = statement.join(Propiedad).where(
             Propiedad.propietario_id == mi_id)
 
     statement = statement.offset(offset).limit(limit)
 
-    return session.exec(statement).all()
+    solicitudes = session.exec(statement).all()
+
+    if solicitudes:
+        inquilino_ids = list(set(s.inquilino_id for s in solicitudes))
+        usuarios = session.exec(select(Usuario).where(
+            Usuario.id.in_(inquilino_ids))).all()
+        mapa_nombres = {u.id: u.nombre for u in usuarios}
+
+        for s in solicitudes:
+            s.inquilino_nombre = mapa_nombres.get(
+                s.inquilino_id, "Inquilino Desconocido")
+
+    return solicitudes
 
 
 @router.patch(
