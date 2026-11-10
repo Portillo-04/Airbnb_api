@@ -9,6 +9,7 @@ class EstadoContrato(str, Enum):
     ACTIVO = "activo"
     FINALIZADO = "finalizado"
     CANCELADO = "cancelado"
+    FIRMADO = "firmado"
 
 
 class ContratoBase(SQLModel):
@@ -52,13 +53,29 @@ class Contrato(ContratoBase, table=True):
                             server_default=sa.func.now(), onupdate=sa.func.now())
     )
 
+    firmado_por: Optional[int] = Field(default=None, foreign_key="usuarios.id")
+    fecha_firma: Optional[datetime] = Field(default=None)
+
     propiedad: "Propiedad" = Relationship(back_populates="contratos")
-    inquilino: "Usuario" = Relationship(back_populates="contratos")
+
+    inquilino: "Usuario" = Relationship(
+        back_populates="contratos_como_inquilino",
+        sa_relationship_kwargs={"foreign_keys": "[Contrato.inquilino_id]"}
+    )
+
+    firmante: Optional["Usuario"] = Relationship(
+        back_populates="contratos_firmados",
+        sa_relationship_kwargs={"foreign_keys": "[Contrato.firmado_por]"}
+    )
 
 
 class ContratoResponse(ContratoBase):
     id: int
     created_at: datetime
+
+    firmado_por: Optional[int] = None
+    fecha_firma: Optional[datetime] = None
+    esta_firmado: bool = False
 
     class Config:
         from_attributes = True

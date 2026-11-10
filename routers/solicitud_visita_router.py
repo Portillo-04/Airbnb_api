@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
 from config.security_Dependencia import Token_Dependencia
@@ -6,13 +7,21 @@ from models.solicitud_visita import SolicitudVisita, SolicitudVisitaCreate, Soli
 from models.propiedad import Propiedad
 from datetime import datetime
 
-router = APIRouter()
+router = APIRouter(prefix="/solicitudes-visita", tags=["solicitudes-visita"])
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/login")
 
 
-@router.post("/solicitudes-visita", response_model=SolicitudVisitaResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=SolicitudVisitaResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Solicitar Visita"
+)
 def solicitar_visita(
     datos: SolicitudVisitaCreate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -40,8 +49,16 @@ def solicitar_visita(
     return SolicitudVisitaResponse.model_validate(nueva)
 
 
-@router.get("/solicitudes-visita", response_model=list[SolicitudVisitaResponse])
-def listar_solicitudes_visita(session: SessionDependencia, token: dict = Depends(Token_Dependencia)):
+@router.get(
+    "/",
+    response_model=list[SolicitudVisitaResponse],
+    summary="Listar Solicitudes Visita"
+)
+def listar_solicitudes_visita(
+    session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
+    token: dict = Depends(Token_Dependencia)
+):
     rol = token.get("rol")
     mi_id = token.get("id")
     statement = select(SolicitudVisita)
@@ -56,11 +73,16 @@ def listar_solicitudes_visita(session: SessionDependencia, token: dict = Depends
     return session.exec(statement).all()
 
 
-@router.patch("/solicitudes-visita/{id}", response_model=SolicitudVisitaResponse)
+@router.patch(
+    "/{id}",
+    response_model=SolicitudVisitaResponse,
+    summary="Responder Visita"
+)
 def responder_visita(
     id: int,
     datos: dict,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     solicitud = session.get(SolicitudVisita, id)

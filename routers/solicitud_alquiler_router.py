@@ -1,19 +1,28 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
 from config.security_Dependencia import Token_Dependencia
 from models.solicitud_alquiler import SolicitudAlquiler, SolicitudAlquilerCreate, SolicitudAlquilerResponse, EstadoSolicitudAlquiler
 from models.propiedad import Propiedad, EstadoVivienda
-from models.usuario import Usuario, RolUsuario
 from datetime import datetime
 
-router = APIRouter()
+router = APIRouter(prefix="/solicitudes-alquiler",
+                   tags=["solicitudes-alquiler"])
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/login")
 
 
-@router.post("/solicitudes-alquiler", response_model=SolicitudAlquilerResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=SolicitudAlquilerResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Solicitar Alquiler"
+)
 def solicitar_alquiler(
     datos: SolicitudAlquilerCreate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -44,8 +53,16 @@ def solicitar_alquiler(
     return SolicitudAlquilerResponse.model_validate(nueva)
 
 
-@router.get("/solicitudes-alquiler", response_model=list[SolicitudAlquilerResponse])
-def listar_solicitudes_alquiler(session: SessionDependencia, token: dict = Depends(Token_Dependencia)):
+@router.get(
+    "/",
+    response_model=list[SolicitudAlquilerResponse],
+    summary="Listar Solicitudes Alquiler"
+)
+def listar_solicitudes_alquiler(
+    session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
+    token: dict = Depends(Token_Dependencia)
+):
     rol = token.get("rol")
     mi_id = token.get("id")
     statement = select(SolicitudAlquiler)
@@ -60,11 +77,16 @@ def listar_solicitudes_alquiler(session: SessionDependencia, token: dict = Depen
     return session.exec(statement).all()
 
 
-@router.patch("/solicitudes-alquiler/{id}", response_model=SolicitudAlquilerResponse)
+@router.patch(
+    "/{id}",
+    response_model=SolicitudAlquilerResponse,
+    summary="Responder Solicitud Alquiler"
+)
 def responder_solicitud_alquiler(
     id: int,
     datos: dict,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     solicitud = session.get(SolicitudAlquiler, id)

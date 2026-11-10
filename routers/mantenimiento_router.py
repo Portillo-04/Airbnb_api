@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
 from config.security_Dependencia import Token_Dependencia
@@ -6,13 +7,22 @@ from models.mantenimiento import SolicitudMantenimiento, SolicitudCreate, Solici
 from models.propiedad import Propiedad
 from models.usuario import Usuario, RolUsuario
 
-router = APIRouter()
+router = APIRouter(prefix="/mantenimiento", tags=["mantenimiento"])
 
 
-@router.post("/mantenimiento", response_model=SolicitudResponse, status_code=status.HTTP_201_CREATED)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/login")
+
+
+@router.post(
+    "/",
+    response_model=SolicitudResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear Solicitud Mantenimiento"
+)
 def crear_solicitud_mantenimiento(
     datos: SolicitudCreate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -41,8 +51,16 @@ def crear_solicitud_mantenimiento(
     return SolicitudResponse.model_validate(nueva)
 
 
-@router.get("/mantenimiento", response_model=list[SolicitudResponse])
-def listar_solicitudes(session: SessionDependencia, token: dict = Depends(Token_Dependencia)):
+@router.get(
+    "/",
+    response_model=list[SolicitudResponse],
+    summary="Listar Solicitudes"
+)
+def listar_solicitudes(
+    session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
+    token: dict = Depends(Token_Dependencia)
+):
     rol = token.get("rol")
     mi_id = token.get("id")
     statement = select(SolicitudMantenimiento)
@@ -51,7 +69,6 @@ def listar_solicitudes(session: SessionDependencia, token: dict = Depends(Token_
         statement = statement.where(
             SolicitudMantenimiento.inquilino_id == mi_id)
     elif rol == "propietario":
-
         from sqlmodel import col
         statement = statement.join(Propiedad).where(
             Propiedad.propietario_id == mi_id)
@@ -59,11 +76,16 @@ def listar_solicitudes(session: SessionDependencia, token: dict = Depends(Token_
     return session.exec(statement).all()
 
 
-@router.patch("/mantenimiento/{id}", response_model=SolicitudResponse)
+@router.patch(
+    "/{id}",
+    response_model=SolicitudResponse,
+    summary="Actualizar Estado Mantenimiento"
+)
 def actualizar_estado_mantenimiento(
     id: int,
     datos: SolicitudUpdate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     solicitud = session.get(SolicitudMantenimiento, id)
@@ -74,7 +96,6 @@ def actualizar_estado_mantenimiento(
     mi_id = token.get("id")
 
     if rol == "inquilino":
-
         raise HTTPException(
             status_code=403, detail="No tienes permiso para cambiar el estado de esta solicitud")
 

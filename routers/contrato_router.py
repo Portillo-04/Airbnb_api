@@ -2,6 +2,7 @@ import os
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
+from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
 from config.security_Dependencia import Token_Dependencia
@@ -13,20 +14,22 @@ from datetime import datetime, timezone
 router = APIRouter(prefix="/contratos", tags=["contratos"])
 
 UPLOAD_DIR_CONTRATOS = Path("uploads/contratos")
-MAX_PDF_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_PDF_SIZE = 10 * 1024 * 1024
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/login")
 
 
-# ✅ SUBIR CONTRATO FIRMADO EN FÍSICO
 @router.post(
     "/upload-pdf",
     summary="Subir Contrato Firmado (Físico)",
-    dependencies=[Depends(Token_Dependencia)]
+    response_model=dict
 )
 async def subir_contrato_firmado(
-    file: UploadFile = File(...),
-    contrato_id: int = Form(...),
     session: SessionDependencia,
-    token: dict = Depends(Token_Dependencia)
+    _: str = Depends(oauth2_scheme),
+    token: dict = Depends(Token_Dependencia),
+    contrato_id: int = Form(...),
+    file: UploadFile = File(...)
 ):
     rol = token.get("rol")
     if rol == "inquilino":
@@ -49,7 +52,6 @@ async def subir_contrato_firmado(
     with open(file_path, "wb") as buffer:
         buffer.write(content)
 
-    # Actualizar contrato en BD
     contrato = session.get(Contrato, contrato_id)
     if not contrato:
         raise HTTPException(status_code=404, detail="Contrato no encontrado")
@@ -69,17 +71,11 @@ async def subir_contrato_firmado(
     return {"mensaje": "Contrato firmado físicamente subido exitosamente", "pdf_url": contrato.pdf_url}
 
 
-# ✅ CREAR CONTRATO (BORRADOR)
-@router.post(
-    "/",
-    response_model=ContratoResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Crear Contrato",
-    dependencies=[Depends(Token_Dependencia)]
-)
+@router.post("/", response_model=ContratoResponse, status_code=status.HTTP_201_CREATED, summary="Crear Contrato")
 def crear_contrato(
     datos: ContratoCreate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -120,15 +116,10 @@ def crear_contrato(
     return ContratoResponse.model_validate(nuevo_contrato)
 
 
-# ✅ LISTAR CONTRATOS (SOLO ADMIN)
-@router.get(
-    "/",
-    response_model=list[ContratoResponse],
-    summary="Listar Contratos",
-    dependencies=[Depends(Token_Dependencia)]
-)
+@router.get("/", response_model=list[ContratoResponse], summary="Listar Contratos")
 def listar_contratos(
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -140,15 +131,11 @@ def listar_contratos(
     return session.exec(statement).all()
 
 
-# ✅ VER/DESCARGAR DOCUMENTO (INQUILINO O DUEÑO)
-@router.get(
-    "/{id}/documento",
-    summary="Ver/Descargar Contrato",
-    dependencies=[Depends(Token_Dependencia)]
-)
+@router.get("/{id}/documento", summary="Ver/Descargar Contrato")
 def ver_documento_contrato(
     id: int,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     contrato = session.get(Contrato, id)
@@ -172,17 +159,12 @@ def ver_documento_contrato(
     return {"pdf_url": contrato.pdf_url, "estado": contrato.estado}
 
 
-# ✅ ACTUALIZAR ESTADO
-@router.patch(
-    "/{id}",
-    response_model=ContratoResponse,
-    summary="Actualizar Estado Contrato",
-    dependencies=[Depends(Token_Dependencia)]
-)
+@router.patch("/{id}", response_model=ContratoResponse, summary="Actualizar Estado Contrato")
 def actualizar_estado_contrato(
     id: int,
     datos: ContratoUpdate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     contrato = session.get(Contrato, id)

@@ -6,19 +6,18 @@ import sqlalchemy as sa
 
 
 class EstadoSolicitud(str, Enum):
-    PENDIENTE = "pendiente"
-    EN_PROCESO = "en_proceso"
-    RESUELTO = "resuelto"
-    CANCELADO = "cancelado"
+    PENDIENTE = "PENDIENTE"
+    EN_PROCESO = "EN_PROCESO"
+    RESUELTO = "RESUELTO"
+    RECHAZADO = "RECHAZADO"
 
 
 class SolicitudBase(SQLModel):
-    titulo: str = Field(nullable=False, max_length=200, min_length=3)
-    descripcion: str = Field(nullable=False, max_length=1000, min_length=10)
-    estado: EstadoSolicitud = Field(default=EstadoSolicitud.PENDIENTE)
-
     propiedad_id: int = Field(foreign_key="propiedades.id", nullable=False)
     inquilino_id: int = Field(foreign_key="usuarios.id", nullable=False)
+    descripcion: str = Field(max_length=1000)
+    estado: EstadoSolicitud = Field(default=EstadoSolicitud.PENDIENTE)
+    respuesta_propietario: Optional[str] = Field(default=None, max_length=500)
 
 
 class SolicitudMantenimiento(SolicitudBase, table=True):
@@ -33,11 +32,8 @@ class SolicitudMantenimiento(SolicitudBase, table=True):
     )
     updated_at: datetime = Field(
         default=None,
-        sa_column=sa.Column(
-            sa.DateTime(timezone=False),
-            server_default=sa.func.now(),
-            onupdate=sa.func.now()
-        )
+        sa_column=sa.Column(sa.DateTime(timezone=False),
+                            server_default=sa.func.now(), onupdate=sa.func.now())
     )
 
     solicitante: "Usuario" = Relationship(back_populates="mantenimientos")
@@ -49,13 +45,13 @@ class SolicitudCreate(SolicitudBase):
 
 class SolicitudUpdate(SQLModel):
     estado: Optional[EstadoSolicitud] = None
-    descripcion: Optional[str] = Field(
-        default=None, max_length=1000, min_length=10)
+    respuesta_propietario: Optional[str] = None
 
 
 class SolicitudResponse(SolicitudBase):
     id: int
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

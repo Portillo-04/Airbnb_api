@@ -1,17 +1,27 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import select
 from config.session_Dependencia import SessionDependencia
 from config.security_Dependencia import Token_Dependencia
 from models.pago import Pago, PagoCreate, PagoResponse
 from models.contrato import Contrato, EstadoContrato
 
-router = APIRouter()
+router = APIRouter(prefix="/pagos", tags=["pagos"])
 
 
-@router.post("/pagos", response_model=PagoResponse, status_code=status.HTTP_201_CREATED)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/login")
+
+
+@router.post(
+    "/",
+    response_model=PagoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar Pago"
+)
 def registrar_pago(
     datos: PagoCreate,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -54,10 +64,15 @@ def registrar_pago(
     return PagoResponse.model_validate(nuevo_pago)
 
 
-@router.get("/pagos/contrato/{contrato_id}", response_model=list[PagoResponse])
+@router.get(
+    "/contrato/{contrato_id}",
+    response_model=list[PagoResponse],
+    summary="Historial Pagos"
+)
 def historial_pagos(
     contrato_id: int,
     session: SessionDependencia,
+    _: str = Depends(oauth2_scheme),
     token: dict = Depends(Token_Dependencia)
 ):
     rol = token.get("rol")
@@ -72,7 +87,6 @@ def historial_pagos(
             status_code=403, detail="No puedes ver pagos de otros contratos")
 
     if rol == "propietario":
-
         from models.propiedad import Propiedad
         prop = session.get(Propiedad, contrato.propiedad_id)
         if not prop or prop.propietario_id != mi_id:
