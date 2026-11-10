@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from fastapi.security import OAuth2PasswordBearer  # ✅ IMPORTAR ESTO
+from fastapi.security import OAuth2PasswordBearer
 from starlette.responses import Response
 from contextlib import asynccontextmanager
 import os
@@ -25,7 +25,7 @@ from routers import (
 
 settings = get_settings()
 
-# ✅ DEFINIR EL ESQUEMA DE SEGURIDAD GLOBAL
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="usuarios/login")
 
 
@@ -47,15 +47,12 @@ app = FastAPI(
     openapi_tags=[],
     docs_url=None,
     redoc_url=None,
-    # ✅ AGREGAR SEGURIDAD A NIVEL GLOBAL PARA SWAGGER
+
     swagger_ui_oauth2_redirect_url="/oauth2-redirect",
     swagger_ui_init_oauth={
         "usePkceWithAuthorizationCodeGrant": True,
     }
 )
-
-# ✅ REGISTRAR EL SCHEMA DE SEGURIDAD EN OPENAPI
-app.add_api_route("/openapi.json", lambda: None, include_in_schema=False)
 
 
 @app.get("/docs", response_class=HTMLResponse, include_in_schema=False)
