@@ -61,10 +61,13 @@ def solicitar_alquiler(
 def listar_solicitudes_alquiler(
     session: SessionDependencia,
     _: str = Depends(oauth2_scheme),
-    token: dict = Depends(Token_Dependencia)
+    token: dict = Depends(Token_Dependencia),
+    limit: int = 100,
+    offset: int = 0
 ):
     rol = token.get("rol")
     mi_id = token.get("id")
+
     statement = select(SolicitudAlquiler)
 
     if rol == "inquilino":
@@ -73,6 +76,8 @@ def listar_solicitudes_alquiler(
         from sqlmodel import col
         statement = statement.join(Propiedad).where(
             Propiedad.propietario_id == mi_id)
+
+    statement = statement.offset(offset).limit(limit)
 
     return session.exec(statement).all()
 
