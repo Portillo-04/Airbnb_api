@@ -59,10 +59,9 @@ def solicitar_alquiler(
     response_model=list[SolicitudAlquilerResponse],
     summary="Listar Solicitudes Alquiler"
 )
-def listar_solicitudes_alquiler(
-    session: SessionDependencia,
-    _: str = Depends(oauth2_scheme),
-    token: dict = Depends(Token_Dependencia),
+def listar_solicitudes(
+    session: Session = Depends(get_session),
+    token: dict = Depends(get_current_user),
     limit: int = 100,
     offset: int = 0
 ):
@@ -131,3 +130,11 @@ def responder_solicitud_alquiler(
     session.commit()
     session.refresh(solicitud)
     return SolicitudAlquilerResponse.model_validate(solicitud)
+
+
+@router.get("/test-limpio", summary="Prueba Sin Annotated")
+def test_limpio(
+    limit: int = 100,
+    offset: int = 0
+):
+    return {"mensaje": "Si no ves args/kwargs aquí, Annotated es el culpable"}
